@@ -1,0 +1,2048 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>成长副本 - 30-60-90学习路径设计器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/2.24.0/cloudbase.full.js"></script>
+<style>
+/* ============================================================
+   CSS Custom Properties - 色彩系统
+   ============================================================ */
+:root {
+  --bg: #0a0a0f;
+  --bg-secondary: #12121a;
+  --surface: #1a1a26;
+  --surface-hover: #222233;
+  --accent-gold: #d4a843;
+  --accent-gold-dim: rgba(212, 168, 67, 0.15);
+  --accent-gold-glow: rgba(212, 168, 67, 0.3);
+  --accent-green: #4ade80;
+  --accent-green-dim: rgba(74, 222, 128, 0.15);
+  --accent-blue: #60a5fa;
+  --accent-blue-dim: rgba(96, 165, 250, 0.15);
+  --accent-purple: #a78bfa;
+  --accent-purple-dim: rgba(167, 139, 250, 0.15);
+  --text-primary: #e8e4dc;
+  --text-secondary: #9a9590;
+  --text-muted: #5a5550;
+  --border: rgba(212, 168, 67, 0.1);
+  --border-active: rgba(212, 168, 67, 0.4);
+}
+
+/* ============================================================
+   Reset & Base
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  font-weight: 400;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(212, 168, 67, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(96, 165, 250, 0.02) 0%, transparent 50%),
+    #0a0a0f;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* 噪点纹理叠加 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* 字体规范 */
+h1, h2, h3, .font-serif { font-family: 'Noto Serif SC', serif; }
+.font-mono, .task-id, .phase-num, .day-counter { font-family: 'JetBrains Mono', monospace; }
+
+/* ============================================================
+   Animations - 关键帧
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes breatheGlow {
+  0%, 100% { border-color: rgba(212, 168, 67, 0.3); box-shadow: 0 0 20px rgba(212, 168, 67, 0.05); }
+  50%      { border-color: rgba(212, 168, 67, 0.6); box-shadow: 0 0 35px rgba(212, 168, 67, 0.12); }
+}
+
+@keyframes bounceDown {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(8px); }
+}
+
+@keyframes progressFill {
+  from { stroke-dashoffset: 565.48; }
+  to   { stroke-dashoffset: var(--progress-offset); }
+}
+
+@keyframes barFill {
+  from { width: 0; }
+}
+
+@keyframes radarExpand {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+@keyframes checkPop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ============================================================
+   fadeUp 入场控制
+   ============================================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-stagger > * { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+.reveal-stagger.visible > *:nth-child(1) { transition-delay: 0.00s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.visible > *:nth-child(2) { transition-delay: 0.08s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.visible > *:nth-child(3) { transition-delay: 0.16s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.visible > *:nth-child(4) { transition-delay: 0.24s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.visible > *:nth-child(5) { transition-delay: 0.32s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.visible > *:nth-child(6) { transition-delay: 0.40s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.visible > *:nth-child(7) { transition-delay: 0.48s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.visible > *:nth-child(8) { transition-delay: 0.56s; opacity: 1; transform: translateY(0); }
+
+/* ============================================================
+   Section Container
+   ============================================================ */
+.section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 80px 24px;
+}
+.section-title {
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 700;
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  letter-spacing: 0.02em;
+}
+.section-subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 48px;
+  font-weight: 300;
+}
+.accent-bar {
+  width: 3px;
+  height: 28px;
+  background: var(--accent-gold);
+  border-radius: 2px;
+  margin-right: 14px;
+  flex-shrink: 0;
+}
+.section-title-wrap {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* ============================================================
+   Navbar - 区域1
+   ============================================================ */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 64px;
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.nav-logo-text {
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--text-primary);
+}
+.nav-phases {
+  display: flex;
+  gap: 4px;
+}
+.nav-phase-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 0.85rem;
+  padding: 6px 18px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.nav-phase-btn:hover { color: var(--text-primary); border-color: var(--border-active); }
+.nav-phase-btn.active { color: var(--accent-gold); border-color: var(--accent-gold); background: var(--accent-gold-dim); }
+.nav-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.nav-progress-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.nav-progress-text span { color: var(--accent-gold); }
+.nav-sync-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.nav-sync-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-muted);
+}
+.nav-sync-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+.nav-sync-dot.online { background: #4ade80; }
+.nav-pair-code {
+  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent-gold);
+  cursor: pointer;
+  padding: 2px 6px;
+  border: 1px dashed rgba(212,168,67,0.3);
+  border-radius: 4px;
+  transition: all 0.2s;
+  user-select: all;
+}
+.nav-pair-code:hover {
+  background: rgba(212,168,67,0.1);
+  border-color: var(--accent-gold);
+}
+.nav-mini-bar {
+  width: 80px;
+  height: 4px;
+  background: var(--surface);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.nav-mini-bar-fill {
+  height: 100%;
+  background: var(--accent-gold);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* ============================================================
+   Hero Section - 区域2
+   ============================================================ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  padding: 120px 24px 80px;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(to top, var(--bg) 0%, transparent 100%);
+  pointer-events: none;
+}
+.hero-title {
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 700;
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+.hero-subtitle {
+  font-family: 'Noto Sans SC', sans-serif;
+  font-weight: 300;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  margin-bottom: 48px;
+}
+.hero-progress-ring {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin-bottom: 32px;
+}
+.hero-progress-ring svg {
+  transform: rotate(-90deg);
+}
+.hero-progress-ring .bg-circle {
+  fill: none;
+  stroke: var(--surface);
+  stroke-width: 4;
+}
+.hero-progress-ring .fg-circle {
+  fill: none;
+  stroke: var(--accent-gold);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1.2s ease-out;
+}
+.hero-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.hero-ring-day {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2rem;
+  font-weight: 500;
+  color: var(--accent-gold);
+}
+.hero-ring-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.hero-phase-icons {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 48px;
+}
+.hero-phase-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.hero-phase-icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+.hero-phase-icon-circle.done {
+  border-color: var(--accent-gold);
+  background: var(--accent-gold-dim);
+}
+.hero-phase-icon-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.hero-phase-icon-circle.done + .hero-phase-icon-label { color: var(--accent-gold); }
+.hero-scroll-arrow {
+  animation: bounceDown 2s ease-in-out infinite;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.3s;
+}
+.hero-scroll-arrow:hover { opacity: 1; }
+
+/* ============================================================
+   Phase Overview Map - 区域3
+   ============================================================ */
+.phase-overview {
+  padding-top: 40px;
+}
+.phase-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.phase-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 28px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+.phase-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-active);
+  box-shadow: 0 8px 30px rgba(212, 168, 67, 0.08);
+}
+.phase-card.current {
+  border-color: rgba(212, 168, 67, 0.3);
+  animation: breatheGlow 4s ease-in-out infinite;
+}
+.phase-card.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.phase-card.locked:hover { transform: none; border-color: var(--border); box-shadow: none; }
+.phase-card-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 6rem;
+  font-weight: 500;
+  color: rgba(212, 168, 67, 0.06);
+  position: absolute;
+  top: 8px;
+  right: 20px;
+  line-height: 1;
+  pointer-events: none;
+}
+.phase-card-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--accent-gold);
+  background: var(--accent-gold-dim);
+  border: 1px solid rgba(212, 168, 67, 0.25);
+  padding: 3px 10px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.phase-card-title {
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.phase-card-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.phase-card-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+.phase-card-progress {
+  font-size: 0.85rem;
+  color: var(--accent-gold);
+  margin-bottom: 12px;
+}
+.phase-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.phase-card-tag {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-secondary);
+}
+
+/* ============================================================
+   Radar Chart - 区域4
+   ============================================================ */
+.radar-section { text-align: center; }
+.radar-container {
+  position: relative;
+  width: 420px;
+  height: 420px;
+  margin: 0 auto 32px;
+}
+.radar-container canvas {
+  width: 100%;
+  height: 100%;
+}
+.radar-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--surface);
+  border: 1px solid var(--border-active);
+  border-radius: 8px;
+  padding: 10px 16px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 10;
+}
+.radar-tooltip .tt-name { font-weight: 500; margin-bottom: 4px; }
+.radar-tooltip .tt-score { color: var(--accent-gold); font-family: 'JetBrains Mono', monospace; }
+.radar-tooltip .tt-desc { color: var(--text-muted); font-size: 0.75rem; }
+
+/* ============================================================
+   Phase Details - 区域5/6/7 (Timeline Layout)
+   ============================================================ */
+.phase-detail { padding-top: 40px; }
+.phase-detail-header {
+  border-left: 4px solid var(--accent-gold);
+  padding-left: 20px;
+  margin-bottom: 40px;
+}
+.phase-detail-header h2 {
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 700;
+  font-size: 1.6rem;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+.phase-detail-header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+.timeline { position: relative; padding-left: 40px; }
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--border-active) 0,
+    var(--border-active) 6px,
+    transparent 6px,
+    transparent 14px
+  );
+}
+.week-group { margin-bottom: 36px; }
+.week-label {
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--accent-gold);
+  margin-bottom: 16px;
+  padding-left: 8px;
+  position: relative;
+}
+.week-label::before {
+  content: '';
+  position: absolute;
+  left: -27px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-gold);
+  border: 2px solid var(--bg);
+  z-index: 2;
+}
+.week-label.past::before { background: var(--surface); border-color: var(--accent-gold); }
+.week-label.future::before { background: var(--surface); border-color: var(--border); }
+
+/* Task Card */
+.task-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.task-card:hover { border-color: var(--border-active); }
+.task-card-header {
+  padding: 18px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  user-select: none;
+}
+.task-card-header:hover { background: var(--surface-hover); }
+.task-card-left { flex: 1; min-width: 0; }
+.task-card-title {
+  font-weight: 500;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.task-card-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.task-card-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.task-status {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+.task-status.completed { background: var(--accent-green-dim); color: var(--accent-green); }
+.task-status.active { background: var(--accent-blue-dim); color: var(--accent-blue); }
+.task-status.pending { background: rgba(90, 85, 80, 0.2); color: var(--text-muted); }
+.task-time {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+.task-expand-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: transform 0.3s ease;
+}
+.task-card.open .task-expand-icon { transform: rotate(180deg); }
+
+.task-card-body {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+.task-card.open .task-card-body {
+  max-height: 600px;
+  opacity: 1;
+}
+.task-card-content {
+  padding: 0 20px 20px 20px;
+  border-top: 1px solid var(--border);
+}
+.task-card-content h4 {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--accent-gold);
+  margin: 14px 0 8px;
+}
+.task-card-content h4:first-child { margin-top: 16px; }
+.task-card-content p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+/* Subtask */
+.subtask-list { list-style: none; }
+.subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+.subtask-item:hover { color: var(--text-primary); }
+.subtask-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  position: relative;
+}
+.subtask-item.done .subtask-checkbox {
+  border-color: var(--accent-green);
+  background: var(--accent-green);
+  animation: checkPop 0.3s ease;
+}
+.subtask-item.done .subtask-text {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+.subtask-checkbox::after {
+  content: '';
+  width: 6px;
+  height: 3px;
+  border-left: 2px solid var(--bg);
+  border-bottom: 2px solid var(--bg);
+  transform: rotate(-45deg) translate(1px, -1px);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.subtask-item.done .subtask-checkbox::after { opacity: 1; }
+
+/* ============================================================
+   Achievements - 区域8
+   ============================================================ */
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+.achievement-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 28px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+.achievement-badge:hover { transform: translateY(-4px); }
+.achievement-badge.unlocked {
+  border-color: rgba(212, 168, 67, 0.3);
+  box-shadow: 0 0 25px rgba(212, 168, 67, 0.08);
+}
+.achievement-badge.unlocked:hover {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 40px rgba(212, 168, 67, 0.15);
+}
+.achievement-badge.locked { opacity: 0.5; }
+.achievement-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+}
+.achievement-badge.unlocked .achievement-icon {
+  background: var(--accent-gold-dim);
+  border: 2px solid var(--accent-gold);
+}
+.achievement-badge.locked .achievement-icon {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+}
+.achievement-icon svg {
+  width: 26px;
+  height: 26px;
+}
+.achievement-badge.unlocked .achievement-icon svg { color: var(--accent-gold); }
+.achievement-badge.locked .achievement-icon svg { color: var(--text-muted); }
+.achievement-name {
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+.achievement-badge.unlocked .achievement-name { color: var(--text-primary); }
+.achievement-badge.locked .achievement-name { color: var(--text-muted); }
+.achievement-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+.achievement-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  max-width: 140px;
+}
+.achievement-badge.locked .hidden-label {
+  color: var(--accent-purple);
+  font-size: 0.7rem;
+  margin-top: 4px;
+}
+
+/* Achievement Detail Popup */
+.achievement-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  background: var(--surface);
+  border: 1px solid var(--border-active);
+  border-radius: 16px;
+  padding: 32px;
+  z-index: 2000;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  min-width: 280px;
+}
+.achievement-popup.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+.achievement-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.achievement-popup-overlay.show { opacity: 1; pointer-events: auto; }
+.achievement-popup-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+.achievement-popup-close:hover { color: var(--text-primary); }
+
+/* ============================================================
+   Footer - 区域9
+   ============================================================ */
+.footer {
+  text-align: center;
+  padding: 80px 24px 40px;
+  border-top: 1px solid var(--border);
+}
+.footer-quote {
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--accent-gold);
+  margin-bottom: 16px;
+}
+.footer-copy {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   Responsive Design
+   ============================================================ */
+@media (max-width: 1199px) {
+  .phase-cards { grid-template-columns: 1fr; max-width: 500px; margin: 0 auto; }
+  .achievements-grid { grid-template-columns: repeat(2, 1fr); }
+  .radar-container { width: 340px; height: 340px; }
+  .navbar { padding: 0 20px; }
+  .nav-phases { display: none; }
+}
+@media (max-width: 767px) {
+  .section { padding: 60px 16px; }
+  .hero-title { font-size: 2rem; }
+  .hero-subtitle { font-size: 0.95rem; }
+  .phase-cards { grid-template-columns: 1fr; }
+  .achievements-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .timeline { padding-left: 28px; }
+  .timeline::before { left: 12px; }
+  .week-label::before { left: -21px; width: 8px; height: 8px; }
+  .task-card-right { flex-direction: column; align-items: flex-end; gap: 4px; }
+  .radar-container { width: 280px; height: 280px; }
+  .nav-progress-text { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     Navbar - 区域1
+     ============================================================ -->
+<nav class="navbar" id="navbar">
+  <a href="#" class="nav-logo" onclick="scrollToTop(event)">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      <path d="M9 12l2 2 4-4"/>
+    </svg>
+    <span class="nav-logo-text">成长副本</span>
+  </a>
+  <div class="nav-phases" id="navPhases">
+    <button class="nav-phase-btn active" data-target="phase-1-section">第一阶段</button>
+    <button class="nav-phase-btn" data-target="phase-2-section">第二阶段</button>
+    <button class="nav-phase-btn" data-target="phase-3-section">第三阶段</button>
+  </div>
+  <div class="nav-progress">
+    <div class="nav-sync-wrap">
+      <div class="nav-sync-status"><span class="nav-sync-dot" id="syncDot"></span><span id="syncStatus">连接中...</span></div>
+      <span class="nav-pair-code" id="pairCodeDisplay" title="点击复制或输入配对码，用于跨设备同步">配对码</span>
+    </div>
+    <span class="nav-progress-text">Day <span id="navDay">23</span>/90</span>
+    <div class="nav-mini-bar">
+      <div class="nav-mini-bar-fill" id="navMiniFill" style="width: 0%;"></div>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================================================
+     Hero Section - 区域2
+     ============================================================ -->
+<section class="hero reveal" id="hero">
+  <h1 class="hero-title">成长副本</h1>
+  <p class="hero-subtitle">AI Native组织 · 90天新人融入计划</p>
+
+  <div class="hero-progress-ring">
+    <svg width="180" height="180" viewBox="0 0 180 180">
+      <circle class="bg-circle" cx="90" cy="90" r="84"/>
+      <circle class="fg-circle" cx="90" cy="90" r="84"
+        id="heroProgressCircle"
+        stroke-dasharray="527.79"
+        stroke-dashoffset="527.79"/>
+    </svg>
+    <div class="hero-ring-center">
+      <span class="hero-ring-day" id="heroDay">Day 23</span>
+      <span class="hero-ring-label">/ 90</span>
+    </div>
+  </div>
+
+  <div class="hero-phase-icons" id="heroPhaseIcons">
+    <!-- Filled by JS -->
+  </div>
+
+  <div class="hero-scroll-arrow" onclick="document.getElementById('phase-overview').scrollIntoView({behavior:'smooth'})">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ============================================================
+     Phase Overview Map - 区域3
+     ============================================================ -->
+<section class="section phase-overview reveal" id="phase-overview">
+  <div class="section-title-wrap">
+    <div class="accent-bar"></div>
+    <h2 class="section-title">副本地图</h2>
+  </div>
+  <p class="section-subtitle">三个阶段，九十天，从新人到独当一面</p>
+  <div class="phase-cards reveal-stagger" id="phaseCards"></div>
+</section>
+
+<!-- ============================================================
+     Radar Chart - 区域4
+     ============================================================ -->
+<section class="section radar-section reveal" id="radar-section">
+  <h2 class="section-title">核心能力图谱</h2>
+  <p class="section-subtitle">六大维度，从工具使用到自主决策的进化路径</p>
+  <div class="radar-container" id="radarContainer">
+    <canvas id="radarCanvas" width="420" height="420"></canvas>
+    <div class="radar-tooltip" id="radarTooltip"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     Phase 1 Details - 区域5 (Day 1-30)
+     ============================================================ -->
+<section class="section phase-detail reveal" id="phase-1-section">
+  <div class="phase-detail-header">
+    <h2>第一阶段 · 新手村：能上手</h2>
+    <p>建立基础认知，学会与AI协作的基本方法，完成第一个真实任务。</p>
+  </div>
+  <div class="timeline" id="phase1Timeline"></div>
+</section>
+
+<!-- ============================================================
+     Phase 2 Details - 区域6 (Day 31-60)
+     ============================================================ -->
+<section class="section phase-detail reveal" id="phase-2-section">
+  <div class="phase-detail-header" style="border-left-color: var(--accent-blue);">
+    <h2>第二阶段 · 修炼塔：能判断</h2>
+    <p>接触AI的边界与局限，培养对产出质量的分辨能力和审美标准。</p>
+  </div>
+  <div class="timeline" id="phase2Timeline"></div>
+</section>
+
+<!-- ============================================================
+     Phase 3 Details - 区域7 (Day 61-90)
+     ============================================================ -->
+<section class="section phase-detail reveal" id="phase-3-section">
+  <div class="phase-detail-header" style="border-left-color: var(--accent-purple);">
+    <h2>第三阶段 · 魔王城：能负责</h2>
+    <p>独立承担完整项目模块，形成个人方法论，承担最终交付责任。</p>
+  </div>
+  <div class="timeline" id="phase3Timeline"></div>
+</section>
+
+<!-- ============================================================
+     Achievements - 区域8
+     ============================================================ -->
+<section class="section reveal" id="achievements-section">
+  <div class="section-title-wrap">
+    <div class="accent-bar"></div>
+    <h2 class="section-title">成就殿堂</h2>
+  </div>
+  <p class="section-subtitle">每一个里程碑，都是成长的印记</p>
+  <div class="achievements-grid reveal-stagger" id="achievementsGrid"></div>
+</section>
+
+<!-- Achievement Popup -->
+<div class="achievement-popup-overlay" id="popupOverlay" onclick="closeAchievementPopup()"></div>
+<div class="achievement-popup" id="achievementPopup">
+  <button class="achievement-popup-close" onclick="closeAchievementPopup()">&times;</button>
+  <div id="popupIcon" style="margin-bottom: 16px;"></div>
+  <h3 id="popupName" style="font-family:'Noto Serif SC',serif;margin-bottom:8px;color:var(--text-primary);"></h3>
+  <p id="popupDesc" style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:4px;"></p>
+  <p id="popupDate" style="color:var(--accent-gold);font-size:0.85rem;font-family:'JetBrains Mono',monospace;"></p>
+</div>
+
+<!-- ============================================================
+     Footer - 区域9
+     ============================================================ -->
+<footer class="footer reveal">
+  <p class="footer-quote">在AI时代，工具会被替代，判断力和责任不会。</p>
+  <p class="footer-copy">成长副本 v1.0 · AI Native组织新人融入系统</p>
+</footer>
+
+<!-- ============================================================
+     JavaScript - 数据模型 & 所有逻辑
+     ============================================================ -->
+<script>
+// ============================================================
+// Data Model
+// ============================================================
+const playerData = {
+  name: '新同事',
+  currentDay: 23,
+  totalDays: 90,
+  currentPhase: 1,
+  skills: {
+    aiTools: 45,
+    skillMgmt: 30,
+    workflow: 25,
+    qualityJudge: 15,
+    aesthetics: 20,
+    decisionMaking: 10
+  },
+  skillsTarget: {
+    aiTools: 85,
+    skillMgmt: 80,
+    workflow: 85,
+    qualityJudge: 90,
+    aesthetics: 85,
+    decisionMaking: 95
+  },
+  phases: [
+    {
+      id: 1,
+      name: '新手村：能上手',
+      subtitle: 'Day 1 - Day 30',
+      description: '建立基础认知，学会与AI协作的基本方法，完成第一个真实任务。',
+      status: 'completed',
+      tags: ['文化融入', '工具上手', '首战交付'],
+      weeks: [
+        {
+          name: '第1周 · 落地周',
+          tasks: [
+            { id: 1, title: '文化融入', description: '了解公司文化、核心素养要求、团队结构', timeEstimate: '8小时', aiSupport: 'AI生成个性化的企业文化知识图谱', deliverables: '一份个人理解笔记', status: 'completed', subtasks: [
+              { text: '参加新人欢迎会', done: true },
+              { text: '阅读企业文化手册（AI辅助：可使用AI快速提取关键信息）', done: true },
+              { text: '完成核心素养自评问卷', done: true }
+            ]},
+            { id: 2, title: '认识你的AI基础设施', description: '了解公司AI平台、模型权限、Skill库结构', timeEstimate: '6小时', aiSupport: 'AI平台引导式教学', deliverables: '成功运行的示例工作流截图', status: 'completed', subtasks: [
+              { text: '登录AI平台并完成基础配置', done: true },
+              { text: '浏览Skill库，了解分类体系', done: true },
+              { text: '跑通一个官方示例Skill', done: true }
+            ]},
+            { id: 3, title: '建立关系', description: '认识导师，进行首次1v1；认识同批新人，建立学习小组', timeEstimate: '6小时', aiSupport: 'AI辅助准备首次1v1话题清单', deliverables: '完成导师首次沟通记录', status: 'completed', subtasks: [
+              { text: '认识导师，进行首次1v1沟通', done: true },
+              { text: '认识同批新人，建立学习小组', done: true },
+              { text: '完成导师首次沟通记录', done: true }
+            ]}
+          ]
+        },
+        {
+          name: '第2-3周 · 上手周',
+          tasks: [
+            { id: 4, title: 'Skill探索者', description: '学会在Skill库中搜索、评估和选用合适的Skill', timeEstimate: '12小时', aiSupport: 'AI根据任务需求推荐合适的Skill组合', deliverables: 'Skill使用笔记（至少3个Skill的评估记录）', status: 'completed', subtasks: [
+              { text: '使用3个不同的Skill完成3个小任务', done: true },
+              { text: '对比不同Skill的输出质量', done: true },
+              { text: '记录每个Skill的优缺点', done: true }
+            ]},
+            { id: 5, title: '工作流初体验', description: '跑通一个完整的工作流（导师提供的已有案例）', timeEstimate: '10小时', aiSupport: 'AI拆解现有工作流并标注关键节点', deliverables: '工作流执行报告', status: 'active', subtasks: [
+              { text: '理解工作流的输入输出', done: true },
+              { text: '按步骤执行并观察AI的行为', done: true },
+              { text: '记录每一步的AI产出和自己的判断', done: false }
+            ]}
+          ]
+        },
+        {
+          name: '第4周 · 首战周',
+          tasks: [
+            { id: 6, title: 'AI + 我的第一个任务', description: '独立完成一个小型真实任务（有导师兜底）', timeEstimate: '16小时', aiSupport: 'AI自动拆解任务为子步骤', deliverables: '任务交付物 + 首战复盘文档', status: 'active', subtasks: [
+              { text: '接收任务并拆解', done: true },
+              { text: '选择合适的Skill和工作流', done: false },
+              { text: '执行并审核AI产出', done: false },
+              { text: '交付并接受反馈', done: false }
+            ]},
+            { id: 7, title: '第一阶段复盘', description: '回顾过去30天的学习，更新技能雷达图自评', timeEstimate: '6小时', aiSupport: 'AI生成30天学习数据概览', deliverables: '30天复盘报告', status: 'pending', subtasks: [
+              { text: '回顾过去30天的学习', done: false },
+              { text: '更新技能雷达图自评', done: false },
+              { text: '与导师进行月度review', done: false }
+            ]}
+          ]
+        }
+      ]
+    },
+    {
+      id: 2,
+      name: '修炼塔：能判断',
+      subtitle: 'Day 31 - Day 60',
+      description: '接触AI的错误边界，培养对产出质量的分辨能力，建立个人审美标准。',
+      status: 'active',
+      tags: ['错误识别', '需求拆解', '审美建立'],
+      weeks: [
+        {
+          name: '第5-6周 · 踩坑周',
+          tasks: [
+            { id: 8, title: 'AI的边界', description: '接触"AI犯错"的真实案例集，学习识别和分类AI错误', timeEstimate: '14小时', aiSupport: 'AI提供带标注的错误案例库', deliverables: '错误分类分析报告', status: 'pending', subtasks: [
+              { text: '完成5个包含AI错误的案例分析', done: false },
+              { text: '分类错误类型：需求理解偏差/知识幻觉/质量不达标/逻辑漏洞', done: false },
+              { text: '学习纠错方法', done: false }
+            ]},
+            { id: 9, title: '需求诊断', description: '学习如何从模糊需求中提炼核心问题', timeEstimate: '10小时', aiSupport: 'AI提供模糊需求练习素材', deliverables: '需求诊断练习集', status: 'pending', subtasks: [
+              { text: '完成3个"模糊需求-精准问题"的转化练习', done: false },
+              { text: '学会用5个追问层次（What/Why/How/So What/What If）拆解问题', done: false }
+            ]}
+          ]
+        },
+        {
+          name: '第7-8周 · 审美周',
+          tasks: [
+            { id: 10, title: '好坏对比', description: '对比不同方案的质量差异，总结评判标准', timeEstimate: '12小时', aiSupport: 'AI提供标准化的评估维度', deliverables: '个人审美标准初稿', status: 'pending', subtasks: [
+              { text: '对同一个任务的5组好坏产出进行对比分析', done: false },
+              { text: '总结"好"的标准是什么', done: false }
+            ]},
+            { id: 11, title: '方案评审参与者', description: '参与团队真实评审会议，学习前辈的判断逻辑', timeEstimate: '8小时', aiSupport: 'AI辅助整理评审要点', deliverables: '评审参与笔记', status: 'pending', subtasks: [
+              { text: '参与团队真实评审会议', done: false },
+              { text: '在评审中至少提出1个有质量的意见', done: false },
+              { text: '学习前辈的判断逻辑', done: false }
+            ]}
+          ]
+        }
+      ]
+    },
+    {
+      id: 3,
+      name: '魔王城：能负责',
+      subtitle: 'Day 61 - Day 90',
+      description: '独立承担完整项目模块，形成个人AI协作方法论，承担最终交付责任。',
+      status: 'locked',
+      tags: ['独立交付', '方法论沉淀', '知识传承'],
+      weeks: [
+        {
+          name: '第9-10周 · 独立交付周',
+          tasks: [
+            { id: 12, title: '我的第一个项目', description: '独立承担一个完整的项目模块，自主定义目标并全程管理AI执行', timeEstimate: '30小时', aiSupport: 'AI作为执行助手，所有决策由人做出', deliverables: '项目交付物 + 完整的过程记录', status: 'locked', subtasks: [
+              { text: '自主定义任务目标和验收标准', done: false },
+              { text: '自主选择工具链和Skill组合', done: false },
+              { text: '全程管理AI的执行过程', done: false },
+              { text: '处理过程中的意外情况', done: false },
+              { text: '交付成果并接受验收', done: false }
+            ]}
+          ]
+        },
+        {
+          name: '第11-12周 · 总结输出周',
+          tasks: [
+            { id: 13, title: '我的AI协作方法论', description: '整理90天的经验，形成个人方法论', timeEstimate: '12小时', aiSupport: 'AI辅助结构化整理', deliverables: '方法论文档（含工作流模板、Skill组合、判断checklist）', status: 'locked', subtasks: [
+              { text: '整理我的工作流模板', done: false },
+              { text: '归纳常用的Skill组合', done: false },
+              { text: '制定个人判断checklist', done: false }
+            ]},
+            { id: 14, title: '新人分享会', description: '给同批新人或后一批新人做一次分享', timeEstimate: '8小时', aiSupport: 'AI辅助制作分享材料', deliverables: '分享文档 + 现场反馈', status: 'locked', subtasks: [
+              { text: '准备分享材料', done: false },
+              { text: '完成现场分享', done: false },
+              { text: '收集反馈', done: false }
+            ]},
+            { id: 15, title: '正式转正review', description: '与导师和HR进行正式的90天回顾', timeEstimate: '6小时', aiSupport: 'AI生成成长轨迹可视化', deliverables: '转正评估 + 下阶段目标', status: 'locked', subtasks: [
+              { text: '对比入职时和现在的技能雷达图', done: false },
+              { text: '与导师和HR进行90天回顾', done: false },
+              { text: '制定后续成长计划', done: false }
+            ]}
+          ]
+        }
+      ]
+    }
+  ],
+  achievements: [
+    { id: 1, name: '初来乍到', desc: '完成第一天的所有任务', unlocked: true, unlockDate: '2025-03-02', icon: 'door' },
+    { id: 2, name: 'Skill猎人', desc: '累计使用5个不同的Skill', unlocked: true, unlockDate: '2025-03-18', icon: 'target' },
+    { id: 3, name: '首战告捷', desc: '完成第一个独立任务', unlocked: true, unlockDate: '2025-03-25', icon: 'sword' },
+    { id: 4, name: '火眼金睛', desc: '成功识别3个AI错误', unlocked: false, icon: 'eye' },
+    { id: 5, name: '需求翻译官', desc: '完成需求诊断练习', unlocked: false, icon: 'translate' },
+    { id: 6, name: '审美觉醒', desc: '提出被团队采纳的评审意见', unlocked: false, icon: 'star' },
+    { id: 7, name: '独当一面', desc: '独立完成一个项目模块', unlocked: false, icon: 'shield' },
+    { id: 8, name: '知识传承', desc: '完成新人分享会', unlocked: false, icon: 'book' },
+    { id: 9, name: '满级出村', desc: '完成全部90天计划', unlocked: false, icon: 'crown' },
+    { id: 10, name: '深夜debug', desc: '在凌晨2点后提交过代码', unlocked: false, icon: 'moon', hidden: true }
+  ]
+};
+
+// ============================================================
+// Persistence: localStorage save / load
+// ============================================================
+const STORAGE_KEY = 'growth_dungeon_progress';
+
+function saveProgress() {
+  const state = {
+    subtasks: [],
+    taskStatuses: [],
+    updatedAt: Date.now()
+  };
+  playerData.phases.forEach(p => p.weeks.forEach(w => w.tasks.forEach(t => {
+    if (t.status !== 'locked') {
+      state.taskStatuses.push({ id: t.id, status: t.status });
+      t.subtasks.forEach((s, i) => {
+        state.subtasks.push({ taskId: t.id, index: i, done: s.done });
+      });
+    }
+  })));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch(e) { /* quota exceeded, ignore */ }
+}
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const state = JSON.parse(raw);
+    // Apply subtask states
+    if (state.subtasks) {
+      playerData.phases.forEach(p => p.weeks.forEach(w => w.tasks.forEach(t => {
+        if (t.status === 'locked') return;
+        const foundStatus = state.taskStatuses.find(ts => ts.id === t.id);
+        if (foundStatus) t.status = foundStatus.status;
+        t.subtasks.forEach((s, i) => {
+          const found = state.subtasks.find(st => st.taskId === t.id && st.index === i);
+          if (found) s.done = found.done;
+        });
+      })));
+    }
+    return true;
+  } catch(e) {
+    localStorage.removeItem(STORAGE_KEY);
+    return false;
+  }
+}
+
+// ============================================================
+// Cross-device Cloud Sync (via CloudBase cloud function)
+// ============================================================
+const CLOUDBASE_ENV = 'ai-hr-tcamp-d8gsa525x18e048e1';
+const SYNC_KEY_STORAGE = 'growth_dungeon_sync_key';
+const PAIR_CODE_STORAGE = 'growth_dungeon_pair_code';
+let cloudApp = null;
+let cloudAuthed = false;
+let cloudUid = null;
+let syncInProgress = false;
+let lastSyncTime = 0;
+
+// Generate a short, human-readable pairing code
+function generatePairCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No I,O,0,1 to avoid confusion
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function getPairCode() {
+  let code = localStorage.getItem(PAIR_CODE_STORAGE);
+  if (!code) {
+    code = generatePairCode();
+    localStorage.setItem(PAIR_CODE_STORAGE, code);
+  }
+  return code;
+}
+
+function getSyncKey() {
+  // If a user-set pair code exists (set from another device), use it
+  const savedKey = localStorage.getItem(SYNC_KEY_STORAGE);
+  if (savedKey && savedKey.startsWith('pair_')) return savedKey;
+  // Otherwise use CloudBase anonymous UID (persists per device)
+  if (cloudUid) return 'uid_' + cloudUid;
+  // Fallback to device-local key
+  return 'uid_' + getPairCode();
+}
+
+// Allow user to set a pairing code from another device
+function setPairCode(code) {
+  if (!code || code.length < 3) return false;
+  const cleanCode = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (cleanCode.length < 3) return false;
+  localStorage.setItem(SYNC_KEY_STORAGE, 'pair_' + cleanCode);
+  return true;
+}
+
+// Update the pairing code display
+function updatePairCodeDisplay() {
+  const el = document.getElementById('pairCodeDisplay');
+  if (!el) return;
+  const syncDot = document.getElementById('syncDot');
+  const currentKey = getSyncKey();
+  if (currentKey && currentKey.startsWith('pair_')) {
+    el.textContent = '已绑定 ' + currentKey.replace('pair_', '');
+    el.title = '已绑定配对码 — 点击更换';
+  } else {
+    el.textContent = '本机: ' + getPairCode();
+    el.title = '点击输入另一台设备的配对码';
+  }
+  // Update dot color
+  if (syncDot) {
+    syncDot.className = 'nav-sync-dot' + (cloudAuthed ? ' online' : '');
+  }
+}
+
+// Handle pair code click: copy to clipboard or input from another device
+function showPairCodeDialog() {
+  const currentKey = getSyncKey();
+  const isPaired = currentKey && currentKey.startsWith('pair_');
+  if (isPaired) {
+    // Already paired — offer to unlink or re-link
+    const newCode = prompt('当前已绑定配对码: ' + currentKey.replace('pair_', '') +
+      '\n\n在另一设备输入此码即可同步。' +
+      '\n要更换配对码请粘贴新码:');
+    if (newCode !== null && newCode.trim()) {
+      if (setPairCode(newCode)) {
+        updatePairCodeDisplay();
+        loadFromCloud();
+      }
+    }
+  } else {
+    const code = getPairCode();
+    const newCode = prompt('📋 你的配对码: ' + code +
+      '\n\n📱 跨设备同步方法:' +
+      '\n  1. 复制上方配对码' +
+      '\n  2. 在另一台设备打开本页面' +
+      '\n  3. 点击导航栏的配对码' +
+      '\n  4. 输入此配对码并确定' +
+      '\n\n要绑定另一台设备，请粘贴对方的配对码:');
+    if (newCode !== null && newCode.trim()) {
+      if (setPairCode(newCode)) {
+        updatePairCodeDisplay();
+        loadFromCloud();
+      }
+    }
+  }
+}
+
+async function initCloudSync() {
+  const statusEl = document.getElementById('syncStatus');
+  const syncDot = document.getElementById('syncDot');
+  try {
+    if (typeof cloudbase === 'undefined') {
+      if (statusEl) statusEl.textContent = 'SDK未加载';
+      updatePairCodeDisplay();
+      return;
+    }
+    cloudApp = cloudbase.init({ env: CLOUDBASE_ENV });
+    const auth = cloudApp.auth({ persistence: 'local' });
+    const { data, error } = await auth.signInAnonymously();
+    if (error) {
+      console.warn('CloudBase 匿名登录失败:', error.message);
+      if (statusEl) statusEl.textContent = '登录未启用';
+      updatePairCodeDisplay();
+      return;
+    }
+    cloudAuthed = true;
+    cloudUid = (data && data.user && data.user.uid) ? data.user.uid : null;
+    if (statusEl) statusEl.textContent = '已连接';
+    if (syncDot) syncDot.classList.add('online');
+    updatePairCodeDisplay();
+    // Try to load from cloud
+    await loadFromCloud();
+  } catch(e) {
+    console.warn('CloudBase 初始化失败:', e.message);
+    if (statusEl) statusEl.textContent = '连接失败';
+  }
+}
+
+async function loadFromCloud() {
+  if (!cloudAuthed || !cloudApp) return;
+  try {
+    const res = await cloudApp.callFunction({
+      name: 'progressSync',
+      data: { action: 'load', syncKey: getSyncKey() }
+    });
+    if (res.result && res.result.code === 0 && res.result.data) {
+      const cloudData = res.result.data;
+      // Merge cloud data into playerData
+      if (cloudData.subtasks && Array.isArray(cloudData.subtasks)) {
+        playerData.phases.forEach(p => p.weeks.forEach(w => w.tasks.forEach(t => {
+          if (t.status === 'locked') return;
+          t.subtasks.forEach((s, i) => {
+            const found = (cloudData.subtasks || []).find(st => st.taskId === t.id && st.index === i);
+            if (found) s.done = found.done; // Apply full state from cloud (both done & undone)
+          });
+          // Recalculate task status from subtask states (real source of truth)
+          const allDone = t.subtasks.every(s => s.done);
+          const anyDone = t.subtasks.some(s => s.done);
+          if (allDone) t.status = 'completed';
+          else if (anyDone) t.status = 'active';
+          else t.status = 'pending';
+        })));
+        cloudSynced = true;
+        lastSyncTime = cloudData.updatedAt || Date.now();
+        // Rebuild UI with merged data
+        refreshAllDisplay();
+      }
+    }
+  } catch(e) {
+    console.warn('从云端加载进度失败:', e.message);
+  }
+}
+
+function packProgressData() {
+  const result = { subtasks: [], taskStatuses: [], updatedAt: Date.now() };
+  playerData.phases.forEach(p => p.weeks.forEach(w => w.tasks.forEach(t => {
+    if (t.status === 'locked') return;
+    result.taskStatuses.push({ id: t.id, status: t.status });
+    t.subtasks.forEach((s, i) => {
+      result.subtasks.push({ taskId: t.id, index: i, done: s.done });
+    });
+  })));
+  return result;
+}
+
+async function syncToCloud() {
+  if (!cloudAuthed || !cloudApp || syncInProgress) return;
+  syncInProgress = true;
+  const statusEl = document.getElementById('syncStatus');
+  try {
+    const data = packProgressData();
+    await cloudApp.callFunction({
+      name: 'progressSync',
+      data: { action: 'save', syncKey: getSyncKey(), data }
+    });
+    lastSyncTime = data.updatedAt;
+    if (statusEl) statusEl.textContent = '已同步';
+    setTimeout(() => { if (statusEl && statusEl.textContent === '已同步') statusEl.textContent = '已连接'; }, 2000);
+  } catch(e) {
+    console.warn('同步到云端失败:', e.message);
+    if (statusEl) statusEl.textContent = '同步失败';
+  } finally {
+    syncInProgress = false;
+  }
+}
+
+// Refresh display only (no re-save to avoid loops)
+function refreshAllDisplay() {
+  recalcPhaseStatuses(); // Re-evaluate unlock state
+  buildPhaseCards();
+  buildPhaseTimeline(1, 'phase1Timeline');
+  buildPhaseTimeline(2, 'phase2Timeline');
+  buildPhaseTimeline(3, 'phase3Timeline');
+  updateNavProgress();
+}
+
+// ============================================================
+// Utility: Get task progress
+// ============================================================
+function getTaskProgress(task) {
+  if (task.status === 'locked') return 0;
+  const done = task.subtasks.filter(s => s.done).length;
+  return Math.round((done / task.subtasks.length) * 100);
+}
+function getPhaseProgress(phase) {
+  let total = 0, done = 0;
+  phase.weeks.forEach(w => w.tasks.forEach(t => {
+    if (t.status !== 'locked') {
+      total += t.subtasks.length;
+      done += t.subtasks.filter(s => s.done).length;
+    }
+  }));
+  return total === 0 ? 0 : Math.round((done / total) * 100);
+}
+
+// ============================================================
+// UI: Navbar
+// ============================================================
+function initNavbar() {
+  document.getElementById('navDay').textContent = playerData.currentDay;
+  document.getElementById('navMiniFill').style.width = Math.round((playerData.currentDay / playerData.totalDays) * 100) + '%';
+
+  const buttons = document.querySelectorAll('.nav-phase-btn');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.target);
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // Scroll spy
+  window.addEventListener('scroll', () => {
+    const sections = ['phase-1-section','phase-2-section','phase-3-section'];
+    let current = 'phase-1-section';
+    sections.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.getBoundingClientRect().top < 200) current = id;
+    });
+    buttons.forEach(b => b.classList.toggle('active', b.dataset.target === current));
+  });
+}
+
+// ============================================================
+// UI: Hero Section
+// ============================================================
+function initHero() {
+  const pct = playerData.currentDay / playerData.totalDays;
+  const circumference = 2 * Math.PI * 84; // ~527.79
+  const offset = circumference - (circumference * pct);
+  const circle = document.getElementById('heroProgressCircle');
+  circle.style.strokeDasharray = circumference;
+  circle.style.strokeDashoffset = circumference;
+
+  setTimeout(() => {
+    circle.style.transition = 'stroke-dashoffset 1.2s ease-out';
+    circle.style.strokeDashoffset = offset;
+  }, 300);
+
+  document.getElementById('heroDay').textContent = 'Day ' + playerData.currentDay;
+
+  // Phase icons
+  const container = document.getElementById('heroPhaseIcons');
+  container.innerHTML = '';
+  const phaseNames = ['能上手', '能判断', '能负责'];
+  playerData.phases.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'hero-phase-icon';
+    const circle = document.createElement('div');
+    circle.className = 'hero-phase-icon-circle' + (p.status === 'completed' ? ' done' : '');
+    if (p.status === 'completed') {
+      circle.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    } else if (p.status === 'active') {
+      circle.innerHTML = '<div style="width:8px;height:8px;border-radius:50%;background:var(--accent-gold);"></div>';
+    } else {
+      circle.innerHTML = '<div style="width:8px;height:8px;border-radius:50%;background:var(--text-muted);"></div>';
+    }
+    const label = document.createElement('span');
+    label.className = 'hero-phase-icon-label';
+    label.textContent = phaseNames[i];
+    div.appendChild(circle);
+    div.appendChild(label);
+    container.appendChild(div);
+  });
+}
+
+// ============================================================
+// UI: Phase Overview Cards
+// ============================================================
+function buildPhaseCards() {
+  const container = document.getElementById('phaseCards');
+  container.innerHTML = '';
+  playerData.phases.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'phase-card';
+    if (p.status === 'active') card.classList.add('current');
+    if (p.status === 'locked') card.classList.add('locked');
+
+    const progress = getPhaseProgress(p);
+    const totalTasks = p.weeks.reduce((sum, w) => sum + w.tasks.filter(t => t.status !== 'locked').length, 0);
+    const completedTasks = p.weeks.reduce((sum, w) => sum + w.tasks.filter(t => t.status === 'completed').length, 0);
+
+    card.innerHTML = `
+      <div class="phase-card-num">0${i+1}</div>
+      ${p.status === 'completed' ? '<div class="phase-card-badge">已通关</div>' : ''}
+      ${p.status === 'locked' ? '<div class="phase-card-badge" style="color:var(--text-muted);background:rgba(90,85,80,0.15);border-color:rgba(90,85,80,0.2);">未解锁</div>' : ''}
+      <h3 class="phase-card-title">${p.name}</h3>
+      <p class="phase-card-subtitle">${p.subtitle}</p>
+      <p class="phase-card-desc">${p.description}</p>
+      <p class="phase-card-progress">${completedTasks}/${totalTasks} 任务已完成</p>
+      <div class="phase-card-tags">
+        ${p.tags.map(t => `<span class="phase-card-tag">${t}</span>`).join('')}
+      </div>
+    `;
+
+    card.addEventListener('click', () => {
+      if (p.status === 'locked') return;
+      const target = document.getElementById('phase-' + p.id + '-section');
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    container.appendChild(card);
+  });
+}
+
+// ============================================================
+// UI: Radar Chart (Canvas)
+// ============================================================
+const radarDimensions = [
+  { key: 'aiTools',        label: 'AI工具使用', desc: '熟练使用各类AI平台和工具完成日常工作', angle: -Math.PI/2 },
+  { key: 'skillMgmt',      label: 'Skill管理',   desc: '能搜索、评估、选用并组合合适的Skill', angle: -Math.PI/2 + Math.PI/3 },
+  { key: 'workflow',       label: '工作流设计',   desc: '理解工作流结构，能跑通已有工作流',     angle: -Math.PI/2 + 2*Math.PI/3 },
+  { key: 'qualityJudge',   label: '质量判断',     desc: '能识别AI产出中的错误和不达标之处',     angle: -Math.PI/2 + Math.PI },
+  { key: 'aesthetics',     label: '审美力',       desc: '能分辨方案的好坏，建立个人审美标准',   angle: -Math.PI/2 + 4*Math.PI/3 },
+  { key: 'decisionMaking', label: '自主决策',     desc: '能独立做出技术和管理决策，承担责任',   angle: -Math.PI/2 + 5*Math.PI/3 }
+];
+
+function drawRadarChart() {
+  const canvas = document.getElementById('radarCanvas');
+  const container = document.getElementById('radarContainer');
+  const ctx = canvas.getContext('2d');
+  const tooltip = document.getElementById('radarTooltip');
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2;
+  const maxR = 140;
+  const levels = 5;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  for (let l = 1; l <= levels; l++) {
+    const r = (maxR / levels) * l;
+    ctx.beginPath();
+    radarDimensions.forEach((d, i) => {
+      const x = cx + r * Math.cos(d.angle);
+      const y = cy + r * Math.sin(d.angle);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.strokeStyle = l === levels ? 'rgba(212,168,67,0.2)' : 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+
+  // Axes
+  radarDimensions.forEach(d => {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + maxR * Math.cos(d.angle), cy + maxR * Math.sin(d.angle));
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.stroke();
+  });
+
+  // Target (dashed) hexagon
+  ctx.beginPath();
+  radarDimensions.forEach((d, i) => {
+    const val = playerData.skillsTarget[d.key] / 100;
+    const x = cx + maxR * val * Math.cos(d.angle);
+    const y = cy + maxR * val * Math.sin(d.angle);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.setLineDash([4, 6]);
+  ctx.strokeStyle = 'rgba(212, 168, 67, 0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Current (filled) hexagon
+  ctx.beginPath();
+  radarDimensions.forEach((d, i) => {
+    const val = playerData.skills[d.key] / 100;
+    const x = cx + maxR * val * Math.cos(d.angle);
+    const y = cy + maxR * val * Math.sin(d.angle);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(212, 168, 67, 0.12)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(212, 168, 67, 0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Data points
+  radarDimensions.forEach(d => {
+    const val = playerData.skills[d.key] / 100;
+    const x = cx + maxR * val * Math.cos(d.angle);
+    const y = cy + maxR * val * Math.sin(d.angle);
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI*2);
+    ctx.fillStyle = '#d4a843';
+    ctx.fill();
+  });
+
+  // Labels
+  ctx.fillStyle = '#9a9590';
+  ctx.font = '12px "Noto Sans SC", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const labelR = maxR + 32;
+  radarDimensions.forEach(d => {
+    const x = cx + labelR * Math.cos(d.angle);
+    const y = cy + labelR * Math.sin(d.angle);
+    ctx.fillText(d.label, x, y);
+  });
+
+  // Score in center
+  const avgScore = Math.round(
+    Object.values(playerData.skills).reduce((a,b) => a+b, 0) / 6
+  );
+  ctx.fillStyle = '#e8e4dc';
+  ctx.font = 'bold 28px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(avgScore, cx, cy - 6);
+  ctx.fillStyle = '#5a5550';
+  ctx.font = '11px "Noto Sans SC", sans-serif';
+  ctx.fillText('综合评分 / 100', cx, cy + 20);
+
+  // Hover detection
+  canvas.onmousemove = function(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const scaleY = H / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+    const dx = mx - cx, dy = my - cy;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const angle = Math.atan2(dy, dx);
+
+    let hovered = null;
+    radarDimensions.forEach(d => {
+      // Check if mouse is near this axis
+      let angleDiff = Math.abs(angle - d.angle);
+      if (angleDiff > Math.PI) angleDiff = 2*Math.PI - angleDiff;
+      if (dist > 20 && dist < labelR + 20 && angleDiff < 0.35) {
+        hovered = d;
+      }
+    });
+
+    if (hovered) {
+      tooltip.style.opacity = '1';
+      tooltip.style.left = (e.clientX - container.getBoundingClientRect().left + 20) + 'px';
+      tooltip.style.top = (e.clientY - container.getBoundingClientRect().top - 70) + 'px';
+      tooltip.innerHTML = `
+        <div class="tt-name">${hovered.label}</div>
+        <div class="tt-score">${playerData.skills[hovered.key]} / 100</div>
+        <div class="tt-desc">${hovered.desc}</div>
+      `;
+    } else {
+      tooltip.style.opacity = '0';
+    }
+  };
+  canvas.onmouseleave = () => { tooltip.style.opacity = '0'; };
+}
+
+// ============================================================
+// UI: Phase Timeline
+// ============================================================
+function buildPhaseTimeline(phaseId, containerId) {
+  const container = document.getElementById(containerId);
+  const phase = playerData.phases.find(p => p.id === phaseId);
+  if (!phase) return;
+  container.innerHTML = '';
+
+  phase.weeks.forEach(week => {
+    const weekGroup = document.createElement('div');
+    weekGroup.className = 'week-group';
+
+    const isPast = phase.status === 'completed' ||
+      (phase.status === 'active' && phase.weeks.indexOf(week) === 0);
+    let weekClass = '';
+    if (!isPast && phase.status !== 'completed') weekClass = ' future';
+    if (phase.status === 'completed') weekClass = ' past';
+
+    weekGroup.innerHTML = `<div class="week-label${weekClass}">${week.name}</div>`;
+
+    week.tasks.forEach(task => {
+      const card = document.createElement('div');
+      card.className = 'task-card';
+      let statusText = '';
+      let statusClass = task.status;
+      if (task.status === 'completed') statusText = '已完成';
+      else if (task.status === 'active') statusText = '进行中';
+      else if (task.status === 'locked') statusText = '未解锁';
+      else statusText = '未开始';
+      if (task.status === 'locked') statusClass = 'pending';
+
+      const progress = getTaskProgress(task);
+
+      card.innerHTML = `
+        <div class="task-card-header">
+          <div class="task-card-left">
+            <div class="task-card-title">${task.title}</div>
+            <div class="task-card-desc">${task.description}</div>
+          </div>
+          <div class="task-card-right">
+            <span class="task-status ${statusClass}">${statusText}</span>
+            <span class="task-time">${task.timeEstimate}</span>
+            <svg class="task-expand-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="task-card-body">
+          <div class="task-card-content">
+            <h4>子任务列表</h4>
+            <ul class="subtask-list">
+              ${task.subtasks.map(s => `
+                <li class="subtask-item ${s.done ? 'done' : ''}" data-task-id="${task.id}" data-subtask-index="${task.subtasks.indexOf(s)}">
+                  <span class="subtask-checkbox"></span>
+                  <span class="subtask-text">${s.text}</span>
+                </li>
+              `).join('')}
+            </ul>
+            <h4>AI辅助方式</h4>
+            <p>${task.aiSupport}</p>
+            <h4>产出物</h4>
+            <p>${task.deliverables}</p>
+          </div>
+        </div>
+      `;
+
+      const header = card.querySelector('.task-card-header');
+      header.addEventListener('click', () => {
+        if (task.status === 'locked') return;
+        card.classList.toggle('open');
+      });
+
+      // Subtask checkboxes
+      card.querySelectorAll('.subtask-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const ti = parseInt(item.dataset.taskId);
+          const si = parseInt(item.dataset.subtaskIndex);
+          // Find the task in playerData
+          playerData.phases.forEach(p => p.weeks.forEach(w => w.tasks.forEach(t => {
+            if (t.id === ti) {
+              t.subtasks[si].done = !t.subtasks[si].done;
+              // Update task status
+              const allDone = t.subtasks.every(s => s.done);
+              const anyDone = t.subtasks.some(s => s.done);
+              if (allDone) t.status = 'completed';
+              else if (anyDone) t.status = 'active';
+              else t.status = 'pending';
+              // Refresh display
+              refreshAllDynamic();
+            }
+          })));
+        });
+      });
+
+      weekGroup.appendChild(card);
+    });
+
+    container.appendChild(weekGroup);
+  });
+}
+
+function refreshAllDynamic() {
+  recalcPhaseStatuses(); // Auto-unlock next phases based on completion
+  buildPhaseCards();
+  buildPhaseTimeline(1, 'phase1Timeline');
+  buildPhaseTimeline(2, 'phase2Timeline');
+  buildPhaseTimeline(3, 'phase3Timeline');
+  updateNavProgress();
+  saveProgress(); // Persist to localStorage on every change
+  syncToCloud();  // Persist to CloudBase NoSQL for cross-device sync
+}
+
+// ============================================================
+// Progressive Unlock: complete a phase → unlock the next
+// ============================================================
+function recalcPhaseStatuses() {
+  for (let i = 0; i < playerData.phases.length; i++) {
+    const phase = playerData.phases[i];
+    const allTasks = getFlatTasks(phase);
+    if (allTasks.length === 0) continue;
+    const allCompleted = allTasks.every(t => t.status === 'completed');
+    const anyDone = allTasks.some(t => t.status !== 'pending');
+    if (allCompleted) {
+      phase.status = 'completed';
+    } else if (anyDone) {
+      phase.status = 'active';
+    } else {
+      phase.status = 'pending';
+    }
+  }
+  // Unlock next phase when current one is fully completed
+  for (let i = 0; i < playerData.phases.length - 1; i++) {
+    const currentPhase = playerData.phases[i];
+    const nextPhase = playerData.phases[i + 1];
+    if (currentPhase.status === 'completed') {
+      if (nextPhase.status === 'locked' || nextPhase.status === 'pending') {
+        nextPhase.status = 'active';
+        // Also unlock tasks that were 'locked' inside this phase
+        nextPhase.weeks.forEach(w => w.tasks.forEach(t => {
+          if (t.status === 'locked') t.status = 'pending';
+        }));
+      }
+    }
+  }
+  // Phase 1 is always at least unlocked
+  if (playerData.phases[0].status === 'locked') {
+    playerData.phases[0].status = 'active';
+  }
+}
+
+function getFlatTasks(phase) {
+  const tasks = [];
+  phase.weeks.forEach(w => w.tasks.forEach(t => {
+    if (t.status !== 'locked') tasks.push(t);
+  }));
+  return tasks;
+}
+
+function updateNavProgress() {
+  document.getElementById('navDay').textContent = playerData.currentDay;
+  document.getElementById('navMiniFill').style.width = Math.round((playerData.currentDay / playerData.totalDays) * 100) + '%';
+}
+
+// ============================================================
+// UI: Achievements
+// ============================================================
+const achievementIcons = {
+  door:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>',
+  target:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+  sword:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M8 8l3 3"/></svg>',
+  eye:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  translate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>',
+  star:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  shield:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  book:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+  crown:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/><path d="M3 20h18"/></svg>',
+  moon:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>'
+};
+
+function buildAchievements() {
+  const grid = document.getElementById('achievementsGrid');
+  grid.innerHTML = '';
+  playerData.achievements.forEach(a => {
+    if (a.hidden && !a.unlocked) return; // Skip hidden locked achievements
+    const badge = document.createElement('div');
+    badge.className = 'achievement-badge ' + (a.unlocked ? 'unlocked' : 'locked');
+    const labelText = a.hidden && a.unlocked ? '隐藏成就' : (a.unlocked ? '' : '');
+
+    badge.innerHTML = `
+      <div class="achievement-icon">${achievementIcons[a.icon] || achievementIcons.star}</div>
+      <div class="achievement-name">${a.unlocked ? a.name : (a.hidden ? '???' : a.name)}</div>
+      ${a.unlocked ? `<div class="achievement-date">${a.unlockDate}</div>` : `<div class="achievement-desc">${a.desc}</div>`}
+      ${a.hidden && !a.unlocked ? '<div class="hidden-label">隐藏成就</div>' : ''}
+    `;
+
+    badge.addEventListener('click', () => {
+      if (a.unlocked) showAchievementPopup(a);
+    });
+
+    grid.appendChild(badge);
+  });
+}
+
+function showAchievementPopup(a) {
+  document.getElementById('popupIcon').innerHTML = `
+    <div class="achievement-icon" style="margin:0 auto;background:var(--accent-gold-dim);border:2px solid var(--accent-gold);width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+      ${achievementIcons[a.icon] || achievementIcons.star}
+    </div>
+  `;
+  document.getElementById('popupName').textContent = a.name;
+  document.getElementById('popupDesc').textContent = a.desc;
+  document.getElementById('popupDate').textContent = '解锁于 ' + a.unlockDate;
+  document.getElementById('achievementPopup').classList.add('show');
+  document.getElementById('popupOverlay').classList.add('show');
+}
+
+function closeAchievementPopup() {
+  document.getElementById('achievementPopup').classList.remove('show');
+  document.getElementById('popupOverlay').classList.remove('show');
+}
+
+// ============================================================
+// Global: IntersectionObserver for scroll animations
+// ============================================================
+function initScrollAnimations() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        // Trigger radar chart draw when it enters view
+        if (entry.target.id === 'radar-section' && !entry.target.dataset.drawn) {
+          entry.target.dataset.drawn = '1';
+          setTimeout(drawRadarChart, 200);
+        }
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+
+  document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => observer.observe(el));
+  // Also observe footer
+  const footer = document.querySelector('.footer');
+  if (footer) observer.observe(footer);
+}
+
+// ============================================================
+// Smooth Scroll to Top
+// ============================================================
+function scrollToTop(e) {
+  e.preventDefault();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================================
+// Initialization
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  loadProgress(); // Restore state from localStorage first
+  recalcPhaseStatuses(); // Auto-unlock phases based on restored progress
+  initNavbar();
+  initHero();
+  buildPhaseCards();
+  buildPhaseTimeline(1, 'phase1Timeline');
+  buildPhaseTimeline(2, 'phase2Timeline');
+  buildPhaseTimeline(3, 'phase3Timeline');
+  buildAchievements();
+  initScrollAnimations();
+  // Hero is visible on load, trigger its animation
+  setTimeout(() => document.getElementById('hero').classList.add('visible'), 100);
+  // Init CloudBase sync after DOM is ready
+  initCloudSync();
+  // Pair code click handler
+  const pairCodeEl = document.getElementById('pairCodeDisplay');
+  if (pairCodeEl) pairCodeEl.addEventListener('click', showPairCodeDialog);
+});
+</script>
+
+</body>
+</html>
